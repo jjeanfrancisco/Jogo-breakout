@@ -11,7 +11,7 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
-PURPLE = (255, 0, 255)
+PURPLE = (0, 0, 0)
 GRAY = (169, 169, 169)
 
 # Definir tamanhos da tela
@@ -41,6 +41,7 @@ bounce_sounds = [
 ]
 hit_sound = pygame.mixer.Sound("hit.mp3")
 background_music = "background.mp3"
+universe_sound = pygame.mixer.Sound("universe.mp3")
 
 class Paddle(pygame.sprite.Sprite):
     def __init__(self):
@@ -88,6 +89,15 @@ class Block(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+
+class Portal(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface([100, 100])
+        self.image.fill(PURPLE)
+        self.rect = self.image.get_rect()
+        self.rect.x = (SCREEN_WIDTH // 2) - 50
+        self.rect.y = (SCREEN_HEIGHT // 2) - 50
 
 def create_blocks():
     blocks = pygame.sprite.Group()
@@ -141,6 +151,14 @@ def show_start_screen():
                 pygame.quit()
                 quit()
 
+def next_level():
+    # Tela preta e som do universo
+    screen.fill(BLACK)
+    pygame.display.flip()
+    universe_sound.play()
+    pygame.time.wait(5000)  # Espera 5 segundos
+    universe_sound.stop()
+
 def main():
     all_sprites = pygame.sprite.Group()
     ball_group = pygame.sprite.Group()
@@ -158,11 +176,21 @@ def main():
     blocks = create_blocks()
     all_sprites.add(blocks)
 
+    # Criar portal
+    portal = Portal()
+    all_sprites.add(portal)
+
     # Variáveis de controle do jogo
     clock = pygame.time.Clock()
     running = True
     game_over = False
     paused = False
+
+    # Variáveis para detectar giros do mouse
+    previous_mouse_pos = pygame.mouse.get_pos()
+    center_mouse_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+    spins = 0
+    clockwise = None
 
     while running:
         for event in pygame.event.get():
@@ -200,35 +228,50 @@ def main():
                 if ball.rect.y > SCREEN_HEIGHT:
                     game_over = True
 
-                screen.fill(BLACK)
-                all_sprites.draw(screen)
-            else:
-                font = pygame.font.SysFont("Arial", 36)
-                text = font.render("Game Over", True, WHITE)
-                screen.blit(text, [SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT // 2])
+                # Detecção de giros do mouse no centro da tela
+                current_mouse_pos = pygame.mouse.get_pos()
+                if current_mouse_pos != previous_mouse_pos:
+                    # Determinar direção do giro
+                    if previous_mouse_pos[0] < center_mouse_pos[0] and current_mouse_pos[0] >= center_mouse_pos[0]:
+                        if clockwise is None or not clockwise:
+                            spins += 1
+                            clockwise = True
+                    elif previous_mouse_pos[0] > center_mouse_pos[0] and current_mouse_pos[0] <= center_mouse_pos[0]:
+                        if clockwise is None or clockwise:
+                            spins += 1
+                            clockwise = False
+                    previous_mouse_pos = current_mouse_pos
 
-                restart_font = pygame.font.SysFont("Arial", 24)
-                restart_text = restart_font.render("Clique para reiniciar ou", True, WHITE)
-                screen.blit(restart_text, [SCREEN_WIDTH // 2 - 150, SCREEN_HEIGHT // 2 + 40])
-                if draw_button("Voltar ao Menu", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 80, 200, 50, GREEN, BLUE):
-                    show_start_screen()
-                    main()
+                    if spins >= 7:
+                        # Transitar para a próxima fase
+                        next_level()
+                        spins = 0  # Reset spins count
+                        # Reset the game objects for the new level
+                        all_sprites.empty()
+                        ball_group.empty()
+                        paddle = Paddle()
+                        ball = Ball()
+                        all_sprites.add(paddle, ball)
+                        ball_group.add(ball)
+                        blocks = create_blocks()
+                        all_sprites.add(blocks)
+                        portal = Portal()
+                        all_sprites.add(portal)
 
-        if paused:
-            font = pygame.font.SysFont("Arial", 36)
-            paused_text = font.render("Jogo Pausado", True, WHITE)
-            screen.blit(paused_text, [SCREEN_WIDTH // 2 - paused_text.get_width() // 2, SCREEN_HEIGHT // 2])
+            screen.fill(BLACK)
+            all_sprites.draw(screen)
 
-        if draw_button("Sair", SCREEN_WIDTH - 110, 10, 100, 50, RED, BLUE):
-            running = False
+            if game_over:
+                font = pygame.font.SysFont("Arial", 48)
+                game_over_text = font.render("Game Over", True, RED)
+                screen.blit(game_over_text, (SCREEN_WIDTH // 2 - game_over_text.get_width() // 2, SCREEN_HEIGHT // 3))
+                draw_button("Voltar ao Menu", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 60, 200, 50, GREEN, BLUE)
 
-        pygame.display.flip()
-        clock.tick(60)
+            pygame.display.flip()
+            clock.tick(60)
 
     pygame.quit()
 
-# Mostrar a tela inicial
-show_start_screen()
-
-# Iniciar o jogo
-main()
+if __name__ == "__main__":
+    show_start_screen()
+    main()

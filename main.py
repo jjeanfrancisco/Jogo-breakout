@@ -11,7 +11,7 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
-PURPLE = (0, 0, 0)
+PURPLE = (255, 0, 255)
 GRAY = (169, 169, 169)
 
 # Definir tamanhos da tela
@@ -42,6 +42,10 @@ bounce_sounds = [
 hit_sound = pygame.mixer.Sound("hit.mp3")
 background_music = "background.mp3"
 universe_sound = pygame.mixer.Sound("universe.mp3")
+
+# Carregar imagem de fundo
+background_image = pygame.image.load("blackhole.png")
+background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 class Paddle(pygame.sprite.Sprite):
     def __init__(self):
@@ -94,7 +98,7 @@ class Portal(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface([100, 100])
-        self.image.fill(PURPLE)
+        self.image.fill(BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = (SCREEN_WIDTH // 2) - 50
         self.rect.y = (SCREEN_HEIGHT // 2) - 50
@@ -258,7 +262,7 @@ def main():
                         portal = Portal()
                         all_sprites.add(portal)
 
-            screen.fill(BLACK)
+            screen.blit(background_image, [0, 0])  # Desenhar imagem de fundo
             all_sprites.draw(screen)
 
             if game_over:

@@ -47,12 +47,6 @@ universe_sound = pygame.mixer.Sound("universe.mp3")
 background_image = pygame.image.load("blackhole.png")
 background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-# Carregar imagens dos braços
-arm_slim_image = pygame.image.load("arm_slim.jpg")
-arm_slim_image = pygame.transform.scale(arm_slim_image, (200, 400))
-arm_muscular_image = pygame.image.load("arm_muscular.png")
-arm_muscular_image = pygame.transform.scale(arm_muscular_image, (200, 400))
-
 class Paddle(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -104,7 +98,7 @@ class Portal(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface([100, 100])
-        self.image.fill(PURPLE)
+        self.image.fill(BLACK)
         self.rect = self.image.get_rect()
         self.rect.x = (SCREEN_WIDTH // 2) - 50
         self.rect.y = (SCREEN_HEIGHT // 2) - 50
@@ -168,32 +162,6 @@ def next_level():
     universe_sound.play()
     pygame.time.wait(5000)  # Espera 5 segundos
     universe_sound.stop()
-    show_arm_screen()
-
-def show_arm_screen():
-    arm_rect = arm_slim_image.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-    clicks = 0
-    arm_image = arm_slim_image
-
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if arm_rect.collidepoint(event.pos):
-                    clicks += 1
-                    if clicks >= 3:
-                        arm_image = arm_muscular_image
-
-        screen.fill(BLACK)
-        screen.blit(arm_image, arm_rect)
-        pygame.display.flip()
-
-        if clicks >= 3 and pygame.mouse.get_pressed()[0] == 0:
-            pygame.time.wait(2000)
-            running = False
 
 def main():
     all_sprites = pygame.sprite.Group()
@@ -249,69 +217,50 @@ def main():
             else:
                 paddle.speed_x = 0
 
-            all_sprites.update()
+            if not game_over:
+                all_sprites.update()
 
-            # Colisões entre a bola e a raquete
-            if pygame.sprite.spritecollide(paddle, ball_group, False):
-                ball.speed_y = -ball.speed_y
-                hit_sound.play()
+                if pygame.sprite.spritecollide(paddle, ball_group, False):
+                    ball.speed_y = -ball.speed_y
+                    random.choice(bounce_sounds).play()
 
-            # Colisões entre a bola e os blocos
-            block_collisions = pygame.sprite.spritecollide(ball, blocks, True)
-            if block_collisions:
-                ball.speed_y = -ball.speed_y
-                hit_sound.play()
+                blocks_hit_list = pygame.sprite.spritecollide(ball, blocks, True)
+                for block in blocks_hit_list:
+                    ball.speed_y = -ball.speed_y
+                    hit_sound.play()
 
-            # Verificar se a bola caiu
-            if ball.rect.y >= SCREEN_HEIGHT:
-                game_over = True
+                if ball.rect.y > SCREEN_HEIGHT:
+                    game_over = True
 
-            # Verificar colisão com o portal
-            if pygame.sprite.collide_rect(ball, portal):
-                ball.rect.x = random.randint(0, SCREEN_WIDTH - BALL_SIZE)
-                ball.rect.y = random.randint(0, SCREEN_HEIGHT - BALL_SIZE)
-                ball.speed_x = random.choice([-4, 4])
-                ball.speed_y = -4
-
-            # Verificar giros do mouse
-            current_mouse_pos = pygame.mouse.get_pos()
-            if previous_mouse_pos != current_mouse_pos:
-                current_direction = (current_mouse_pos[0] - center_mouse_pos[0], current_mouse_pos[1] - center_mouse_pos[1])
-                if previous_mouse_pos == center_mouse_pos:
-                    previous_direction = current_direction
-                else:
-                    if current_direction[0] > 0 and previous_direction[0] <= 0:
-                        if clockwise is None or clockwise:
-                            spins += 1
-                            clockwise = True
-                        else:
-                            spins = 1
-                            clockwise = True
-                    elif current_direction[0] < 0 and previous_direction[0] >= 0:
+                # Detecção de giros do mouse no centro da tela
+                current_mouse_pos = pygame.mouse.get_pos()
+                if current_mouse_pos != previous_mouse_pos:
+                    # Determinar direção do giro
+                    if previous_mouse_pos[0] < center_mouse_pos[0] and current_mouse_pos[0] >= center_mouse_pos[0]:
                         if clockwise is None or not clockwise:
                             spins += 1
+                            clockwise = True
+                    elif previous_mouse_pos[0] > center_mouse_pos[0] and current_mouse_pos[0] <= center_mouse_pos[0]:
+                        if clockwise is None or clockwise:
+                            spins += 1
                             clockwise = False
-                        else:
-                            spins = 1
-                            clockwise = False
-                previous_direction = current_direction
-                previous_mouse_pos = current_mouse_pos
+                    previous_mouse_pos = current_mouse_pos
 
-                if spins >= 7:
-                    # Transitar para a próxima fase
-                    next_level()
-                    spins = 0  # Reset spins count
-                    # Reset the game objects for the new level
-                    all_sprites.empty()
-                    ball_group.empty()
-                    paddle = Paddle()
-                    ball = Ball()
-                    all_sprites.add(paddle, ball)
-                    ball_group.add(ball)
-                    blocks = create_blocks()
-                    all_sprites.add(blocks)
-                    portal = Portal()
-                    all_sprites.add(portal)
+                    if spins >= 7:
+                        # Transitar para a próxima fase
+                        next_level()
+                        spins = 0  # Reset spins count
+                        # Reset the game objects for the new level
+                        all_sprites.empty()
+                        ball_group.empty()
+                        paddle = Paddle()
+                        ball = Ball()
+                        all_sprites.add(paddle, ball)
+                        ball_group.add(ball)
+                        blocks = create_blocks()
+                        all_sprites.add(blocks)
+                        portal = Portal()
+                        all_sprites.add(portal)
 
             screen.blit(background_image, [0, 0])  # Desenhar imagem de fundo
             all_sprites.draw(screen)

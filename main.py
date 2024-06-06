@@ -47,6 +47,13 @@ universe_sound = pygame.mixer.Sound("universe.mp3")
 background_image = pygame.image.load("blackhole.png")
 background_image = pygame.transform.scale(background_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
+# Carregar imagens dos braços
+arm_slim_image = pygame.image.load("arm_slim.jpg")
+arm_slim_image = pygame.transform.scale(arm_slim_image, (200, 400))
+arm_muscular_image = pygame.image.load("arm_muscular.png")
+arm_muscular_image = pygame.transform.scale(arm_muscular_image, (200, 400))
+
+
 class Paddle(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -63,6 +70,7 @@ class Paddle(pygame.sprite.Sprite):
             self.rect.x = 0
         if self.rect.x > SCREEN_WIDTH - PADDLE_WIDTH:
             self.rect.x = SCREEN_WIDTH - PADDLE_WIDTH
+
 
 class Ball(pygame.sprite.Sprite):
     def __init__(self):
@@ -85,6 +93,7 @@ class Ball(pygame.sprite.Sprite):
             self.speed_y = -self.speed_y
             random.choice(bounce_sounds).play()
 
+
 class Block(pygame.sprite.Sprite):
     def __init__(self, color, x, y):
         super().__init__()
@@ -94,14 +103,16 @@ class Block(pygame.sprite.Sprite):
         self.rect.x = x
         self.rect.y = y
 
+
 class Portal(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
         self.image = pygame.Surface([100, 100])
-        self.image.fill(BLACK)
+        self.image.fill(BLACK)  # Mudança da cor do portal para preto
         self.rect = self.image.get_rect()
         self.rect.x = (SCREEN_WIDTH // 2) - 50
         self.rect.y = (SCREEN_HEIGHT // 2) - 50
+
 
 def create_blocks():
     blocks = pygame.sprite.Group()
@@ -111,6 +122,7 @@ def create_blocks():
             block = Block(colors[row], column * (BLOCK_WIDTH + 2) + 1, row * (BLOCK_HEIGHT + 2) + 1)
             blocks.add(block)
     return blocks
+
 
 def draw_button(text, x, y, width, height, color, hover_color):
     mouse = pygame.mouse.get_pos()
@@ -125,6 +137,7 @@ def draw_button(text, x, y, width, height, color, hover_color):
     text_surface = font.render(text, True, BLACK)
     screen.blit(text_surface, (x + (width - text_surface.get_width()) // 2, y + (height - text_surface.get_height()) // 2))
     return False
+
 
 def show_start_screen():
     # Carregar imagem de fundo
@@ -155,13 +168,73 @@ def show_start_screen():
                 pygame.quit()
                 quit()
 
+
 def next_level():
     # Tela preta e som do universo
     screen.fill(BLACK)
     pygame.display.flip()
     universe_sound.play()
-    pygame.time.wait(5000)  # Espera 5 segundos
+    pygame.time.wait(2000)  # Espera 2 segundos
     universe_sound.stop()
+    show_matrix_screen()
+
+
+def show_matrix_screen():
+    font = pygame.font.SysFont("Arial", 24)
+    clock = pygame.time.Clock()
+    numbers = [str(i) for i in range(10)]
+    positions = [random.randint(0, SCREEN_WIDTH - 20) for _ in range(30)]
+    speeds = [random.randint(1, 5) for _ in range(30)]
+    running = True
+
+    while running:
+        screen.fill(BLACK)
+        for i in range(30):
+            num_text = font.render(random.choice(numbers), True, GREEN)
+            screen.blit(num_text, (positions[i], i * 20))
+            positions[i] += speeds[i]
+            if positions[i] >= SCREEN_HEIGHT:
+                positions[i] = -20
+                speeds[i] = random.randint(1, 5)
+
+        pygame.display.flip()
+        clock.tick(30)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                running = False
+
+    show_arm_screen()
+
+
+def show_arm_screen():
+    arm_rect = arm_slim_image.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+    clicks = 0
+    arm_image = arm_slim_image
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if arm_rect.collidepoint(event.pos):
+                    clicks += 1
+                    if clicks >= 3:
+                        arm_image = arm_muscular_image
+
+        screen.fill(BLACK)
+        screen.blit(arm_image, arm_rect)
+        pygame.display.flip()
+
+        if clicks >= 3 and pygame.mouse.get_pressed()[0] == 0:
+            pygame.time.wait(2000)
+            running = False
+
 
 def main():
     all_sprites = pygame.sprite.Group()
@@ -188,11 +261,9 @@ def main():
     clock = pygame.time.Clock()
     running = True
     game_over = False
-    paused = False
-
-    # Variáveis para detectar giros do mouse
-    previous_mouse_pos = pygame.mouse.get_pos()
     center_mouse_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+    previous_mouse_pos = center_mouse_pos
+    previous_direction = (0, 0)
     spins = 0
     clockwise = None
 
@@ -200,67 +271,85 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if game_over and event.type == pygame.MOUSEBUTTONDOWN:
-                if draw_button("Voltar ao Menu", SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 60, 200, 50, GREEN, BLUE):
-                    show_start_screen()
-                    main()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_p:
-                    paused = not paused
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if game_over:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if SCREEN_WIDTH // 2 - 100 < mouse_pos[0] < SCREEN_WIDTH // 2 + 100 and SCREEN_HEIGHT // 2 + 60 < mouse_pos[1] < SCREEN_HEIGHT // 2 + 110:
+                        game_over = False
+                        main()
 
-        if not paused:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_LEFT]:
-                paddle.speed_x = -6
-            elif keys[pygame.K_RIGHT]:
-                paddle.speed_x = 6
-            else:
-                paddle.speed_x = 0
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            paddle.speed_x = -6
+        elif keys[pygame.K_RIGHT]:
+            paddle.speed_x = 6
+        else:
+            paddle.speed_x = 0
 
-            if not game_over:
-                all_sprites.update()
+        if not game_over:
+            all_sprites.update()
 
-                if pygame.sprite.spritecollide(paddle, ball_group, False):
-                    ball.speed_y = -ball.speed_y
-                    random.choice(bounce_sounds).play()
+            # Colisões entre a bola e a raquete
+            if pygame.sprite.spritecollide(paddle, ball_group, False):
+                ball.speed_y = -ball.speed_y
+                hit_sound.play()
 
-                blocks_hit_list = pygame.sprite.spritecollide(ball, blocks, True)
-                for block in blocks_hit_list:
-                    ball.speed_y = -ball.speed_y
-                    hit_sound.play()
+            # Colisões entre a bola e os blocos
+            block_collisions = pygame.sprite.spritecollide(ball, blocks, True)
+            if block_collisions:
+                ball.speed_y = -ball.speed_y
+                hit_sound.play()
 
-                if ball.rect.y > SCREEN_HEIGHT:
-                    game_over = True
+            # Verificar se a bola caiu
+            if ball.rect.y >= SCREEN_HEIGHT:
+                game_over = True
 
-                # Detecção de giros do mouse no centro da tela
-                current_mouse_pos = pygame.mouse.get_pos()
-                if current_mouse_pos != previous_mouse_pos:
-                    # Determinar direção do giro
-                    if previous_mouse_pos[0] < center_mouse_pos[0] and current_mouse_pos[0] >= center_mouse_pos[0]:
-                        if clockwise is None or not clockwise:
-                            spins += 1
-                            clockwise = True
-                    elif previous_mouse_pos[0] > center_mouse_pos[0] and current_mouse_pos[0] <= center_mouse_pos[0]:
+            # Verificar colisão com o portal
+            if pygame.sprite.collide_rect(ball, portal):
+                ball.rect.x = random.randint(0, SCREEN_WIDTH - BALL_SIZE)
+                ball.rect.y = random.randint(0, SCREEN_HEIGHT - BALL_SIZE)
+                ball.speed_x = random.choice([-4, 4])
+                ball.speed_y = -4
+
+            # Verificar giros do mouse
+            current_mouse_pos = pygame.mouse.get_pos()
+            if previous_mouse_pos != current_mouse_pos:
+                current_direction = (current_mouse_pos[0] - center_mouse_pos[0], current_mouse_pos[1] - center_mouse_pos[1])
+                if previous_mouse_pos == center_mouse_pos:
+                    previous_direction = current_direction
+                else:
+                    if current_direction[0] > 0 and previous_direction[0] <= 0:
                         if clockwise is None or clockwise:
                             spins += 1
+                            clockwise = True
+                        else:
+                            spins = 1
+                            clockwise = True
+                    elif current_direction[0] < 0 and previous_direction[0] >= 0:
+                        if clockwise is None or not clockwise:
+                            spins += 1
                             clockwise = False
-                    previous_mouse_pos = current_mouse_pos
+                        else:
+                            spins = 1
+                            clockwise = False
+                previous_direction = current_direction
+                previous_mouse_pos = current_mouse_pos
 
-                    if spins >= 7:
-                        # Transitar para a próxima fase
-                        next_level()
-                        spins = 0  # Reset spins count
-                        # Reset the game objects for the new level
-                        all_sprites.empty()
-                        ball_group.empty()
-                        paddle = Paddle()
-                        ball = Ball()
-                        all_sprites.add(paddle, ball)
-                        ball_group.add(ball)
-                        blocks = create_blocks()
-                        all_sprites.add(blocks)
-                        portal = Portal()
-                        all_sprites.add(portal)
+                if spins >= 7:
+                    # Transitar para a próxima fase
+                    next_level()
+                    spins = 0  # Reset spins count
+                    # Reset the game objects for the new level
+                    all_sprites.empty()
+                    ball_group.empty()
+                    paddle = Paddle()
+                    ball = Ball()
+                    all_sprites.add(paddle, ball)
+                    ball_group.add(ball)
+                    blocks = create_blocks()
+                    all_sprites.add(blocks)
+                    portal = Portal()
+                    all_sprites.add(portal)
 
             screen.blit(background_image, [0, 0])  # Desenhar imagem de fundo
             all_sprites.draw(screen)
@@ -275,6 +364,7 @@ def main():
             clock.tick(60)
 
     pygame.quit()
+
 
 if __name__ == "__main__":
     show_start_screen()

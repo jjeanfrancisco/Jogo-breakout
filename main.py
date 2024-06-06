@@ -183,19 +183,19 @@ def show_matrix_screen():
     font = pygame.font.SysFont("Arial", 24)
     clock = pygame.time.Clock()
     numbers = [str(i) for i in range(10)]
-    positions = [random.randint(0, SCREEN_WIDTH - 20) for _ in range(30)]
+    columns = [random.randint(0, SCREEN_WIDTH) for _ in range(30)]
+    drops = [random.randint(0, SCREEN_HEIGHT) for _ in range(30)]
     speeds = [random.randint(1, 5) for _ in range(30)]
     running = True
 
     while running:
         screen.fill(BLACK)
         for i in range(30):
-            num_text = font.render(random.choice(numbers), True, GREEN)
-            screen.blit(num_text, (positions[i], i * 20))
-            positions[i] += speeds[i]
-            if positions[i] >= SCREEN_HEIGHT:
-                positions[i] = -20
-                speeds[i] = random.randint(1, 5)
+            drop_text = font.render(random.choice(numbers), True, GREEN)
+            screen.blit(drop_text, (columns[i], drops[i]))
+            drops[i] += speeds[i]
+            if drops[i] >= SCREEN_HEIGHT:
+                drops[i] = -20
 
         pygame.display.flip()
         clock.tick(30)
@@ -257,10 +257,12 @@ def main():
     portal = Portal()
     all_sprites.add(portal)
 
-    # Variáveis de controle do jogo
-    clock = pygame.time.Clock()
     running = True
     game_over = False
+
+    clock = pygame.time.Clock()
+
+    # Variáveis para monitorar o giro do mouse
     center_mouse_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
     previous_mouse_pos = center_mouse_pos
     previous_direction = (0, 0)

@@ -27,7 +27,7 @@ PADDLE_WIDTH = 100
 PADDLE_HEIGHT = 10
 
 # Definir tamanho da bola
-BALL_SIZE = 10
+BALL_SIZE = 11
 
 # Criar a tela
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
